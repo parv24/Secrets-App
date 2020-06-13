@@ -41,8 +41,8 @@ passport.deserializeUser(function(id, done) {
   });
 });
 passport.use(new GoogleStrategy({
-    clientID: process.env.CLIENT_ID,
-    clientSecret: process.env.CLIENT_SECRET,
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: "http://localhost:3000/auth/google/secrets",
     userProfileURL:"https://www.googleapis.com/oauth2/v3/userinfo",
   },
@@ -125,18 +125,25 @@ app.get("/login",function(req,res){
 });
 
 app.get("/secrets",function(req,res){
-  User.find({"secret":{$ne:null}},function(err,foundUsers){
-    if(err)
-    {
-      console.log(err);
-    }
-    else
-    {
-      if(foundUsers){
-        res.render("secrets.ejs",{usersWithSecrets:foundUsers})
+  if(req.isAuthenticated())
+  {
+    User.find({"secret":{$ne:null}},function(err,foundUsers){
+      if(err)
+      {
+        console.log(err);
       }
-    }
-  })
+      else
+      {
+        if(foundUsers){
+          res.render("secrets.ejs",{usersWithSecrets:foundUsers})
+        }
+      }
+    });
+  }
+  else
+  {
+    res.redirect("/login");
+  }
 });
 app.get("/submit",function(req,res){
   if(req.isAuthenticated())
@@ -150,8 +157,17 @@ app.get("/submit",function(req,res){
 });
 
 app.get("/logout",function(req,res){
-  req.logout();
-  res.redirect("/");
+  req.session.destroy((err) => {
+	if(err)
+  {
+    return next(err);
+  }
+  else
+  {
+    req.logout();
+    res.redirect("/");
+  }
+});
 });
 
 app.get("/register",function(req,res){
